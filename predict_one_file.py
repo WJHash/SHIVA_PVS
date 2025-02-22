@@ -118,6 +118,11 @@ for predictor_file in predictor_files:
             predictor_file,
             compile=False,
             custom_objects={"tf": tf})
+        # # 将Path对象转换为字符串
+        # model_path = str(predictor_file)
+        # model = tf.saved_model.load(model_path)
+        # # 获取具体的预测函数
+        # predict_fn = model.signatures["serving_default"]
     except Exception as err:
         print(f'\n\tWARNING : Exception loading model : {predictor_file}\n{err}')
         continue
@@ -126,10 +131,17 @@ for predictor_file in predictor_files:
         images,
         batch_size=1
         )
+    # # 修改预测调用方式
+    # prediction = predict_fn(tf.convert_to_tensor(images))
+    # # 获取输出张量的值
+    # prediction = list(prediction.values())[0].numpy()
     if brainmask is not None:
         prediction *= brainmask
     predictions.append(prediction)
 
+# # 检查是否有成功的预测结果
+# if len(predictions) == 0:
+#     raise ValueError("ERROR: No models were successfully loaded and predicted")
 # Average all predictions
 predictions = np.mean(predictions, axis=0)
 
@@ -139,6 +151,9 @@ if _VERBOSE:
 
 # Save prediction
 nifti = nibabel.Nifti1Image(predictions[0], affine=affine)
+# # 确保predictions的维度正确
+# predictions_reshaped = predictions[np.newaxis, ...] if predictions.ndim == 3 else predictions
+# nifti = nibabel.Nifti1Image(predictions_reshaped[0], affine=affine)
 nibabel.save(nifti, output_path)
 
 if _VERBOSE:
